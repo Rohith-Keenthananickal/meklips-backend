@@ -1,10 +1,20 @@
 from rest_framework import serializers
-from users.models import User
+from django.contrib.auth import get_user_model
 from users.serializers import UserSerializer
 from .models import (
     Candidate, CurrentAddress, EducationalDegree,
-    SocialMediaLink, WorkExperience, CandidateSkill
+    SocialMediaLink, WorkExperience, CandidateSkill, CandidateHighlights
 )
+
+User = get_user_model()
+
+class CandidateHighlightsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CandidateHighlights
+        fields = '__all__'
+        read_only_fields = ('candidate',)   
+
+
 
 class CurrentAddressSerializer(serializers.ModelSerializer):
     class Meta:
@@ -78,6 +88,7 @@ class CandidateSerializer(serializers.ModelSerializer):
     social_media_links = SocialMediaLinkSerializer(many=True, read_only=True)
     work_experiences = WorkExperienceSerializer(many=True, read_only=True)
     candidate_skills = CandidateSkillSerializer(many=True, read_only=True)
+    candidate_highlights = CandidateHighlightsSerializer(many=True, read_only=True)
 
     class Meta:
         model = Candidate
@@ -104,16 +115,7 @@ class CandidateSummarySerializer(serializers.ModelSerializer):
         extra_kwargs = {
             'experience_summary': {'help_text': 'Summary of work experience'},
             'technical_summary': {'help_text': 'Summary of technical skills'}
-        } 
-
-
-from rest_framework import serializers
-from users.models import User
-from .models import Candidate, CurrentAddress, EducationalDegree, SocialMediaLink, WorkExperience, CandidateSkill
-from .serializers import (
-    CurrentAddressSerializer, EducationalDegreeSerializer, SocialMediaLinkSerializer, 
-    WorkExperienceSerializer, CandidateSkillSerializer
-)
+        }
 
 class CreateCandidateSerializer(serializers.ModelSerializer):
     userId = serializers.IntegerField(write_only=True)  # Accept only userId from request
@@ -124,6 +126,7 @@ class CreateCandidateSerializer(serializers.ModelSerializer):
     social_media_links = SocialMediaLinkSerializer(many=True, write_only=True, required=False)
     work_experiences = WorkExperienceSerializer(many=True, write_only=True, required=False)
     candidate_skills = CandidateSkillSerializer(many=True, write_only=True, required=False)
+    candidate_highlights = CandidateHighlightsSerializer(many=True, write_only=True, required=False)
 
     class Meta:
         model = Candidate
@@ -131,20 +134,36 @@ class CreateCandidateSerializer(serializers.ModelSerializer):
             'userId', 'first_name', 'last_name', 'phone', 'mobile', 'dob', 'gender', 
             'dp_id', 'video_id', 'experience_summary', 'technical_summary', 'street_address',
             'current_address', 'educational_degrees', 'social_media_links', 
-            'work_experiences', 'candidate_skills',
-            'current_address', 'educational_degrees', 'social_media_links',
-            'work_experiences', 'candidate_skills'
+            'work_experiences', 'candidate_skills', 'candidate_highlights'
         ]
+
+    def validate_userId(self, value):
+        try:
+            user = User.objects.get(id=value)
+            if not user.is_active:
+                raise serializers.ValidationError("User account is disabled")
+            
+            # Check if user already has a candidate profile
+            if hasattr(user, 'candidate_profile'):
+                raise serializers.ValidationError("User already has a candidate profile")
+                
+            return value
+        except User.DoesNotExist:
+            raise serializers.ValidationError(f"User with ID {value} does not exist")
 
     def create(self, validated_data):
         user_id = validated_data.pop('userId')
 
         # Fetch user object using userId
         try:
-            print(User.objects.all())
             user = User.objects.get(id=user_id)
+            
+            # Check if user already has a candidate profile
+            if hasattr(user, 'candidate_profile'):
+                raise serializers.ValidationError("User already has a candidate profile")
+                
         except User.DoesNotExist:
-            raise serializers.ValidationError({"userId": "User not found"})
+            raise serializers.ValidationError({"userId": f"User with ID {user_id} not found"})
 
         # Extract nested data
         current_address = validated_data.pop('current_address', None)
@@ -152,9 +171,13 @@ class CreateCandidateSerializer(serializers.ModelSerializer):
         social_media_links = validated_data.pop('social_media_links', [])
         work_experiences = validated_data.pop('work_experiences', [])
         candidate_skills = validated_data.pop('candidate_skills', [])
+        candidate_highlights = validated_data.pop('candidate_highlights', [])
 
-        # Create Candidate object
-        candidate = Candidate.objects.create(user=user, **validated_data)
+        # Create Candidate object with user object directly
+        try:
+            candidate = Candidate.objects.create(user=user, **validated_data)
+        except Exception as e:
+            raise serializers.ValidationError({"error": str(e)})
 
         # Handle nested fields if provided
         if current_address:
@@ -171,6 +194,10 @@ class CreateCandidateSerializer(serializers.ModelSerializer):
         if candidate_skills:
             for skill_data in candidate_skills:
                 CandidateSkill.objects.create(candidate=candidate, **skill_data)
+        if candidate_highlights:
+            for highlight_data in candidate_highlights:
+                CandidateHighlights.objects.create(candidate=candidate, **highlight_data)
+
 
         return candidate
 

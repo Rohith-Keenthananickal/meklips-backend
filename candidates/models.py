@@ -1,5 +1,6 @@
 from django.db import models
-from users.models import User
+from django.contrib.auth import get_user_model
+User = get_user_model()
 
 class Candidate(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='candidate_profile')
@@ -9,8 +10,8 @@ class Candidate(models.Model):
     mobile = models.CharField(max_length=20)
     dob = models.DateField()
     gender = models.CharField(max_length=10)
-    dp_id = models.IntegerField(null=True, blank=True)
-    video_id = models.IntegerField(null=True, blank=True)
+    dp_id = models.TextField(null=True, blank=True)
+    video_id = models.TextField(null=True, blank=True)
     experience_summary = models.TextField()
     technical_summary = models.TextField()
     street_address = models.CharField(max_length=255)
@@ -18,8 +19,8 @@ class Candidate(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"{self.first_name} {self.last_name}"
-    
+        return f"Candidate(id={self.id}, user={self.user.username}, name={self.first_name} {self.last_name})"
+
     class Meta:
         db_table = 'TBL_CANDIDATE'
 
@@ -100,3 +101,19 @@ class CandidateSkill(models.Model):
     
     class Meta:
         db_table = 'TBL_CANDIDATE_SKILL'
+
+
+class CandidateHighlights(models.Model):
+    candidate = models.ForeignKey(Candidate, on_delete=models.CASCADE, related_name='candidate_highlights')
+    highlightkey = models.TextField()
+    highlightvalue = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    def __str__(self):
+        return f"{self.candidate.first_name}'s {self.highlightkey}"
+    
+    class Meta:
+        db_table = 'TBL_CANDIDATE_HIGHLIGHTS'
+
+
