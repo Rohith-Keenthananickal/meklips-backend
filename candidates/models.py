@@ -4,52 +4,52 @@ User = get_user_model()
 
 class Candidate(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='candidate_profile')
-    first_name = models.CharField(max_length=100)
-    last_name = models.CharField(max_length=100)
-    phone = models.CharField(max_length=20,null=True, blank=True)
-    mobile = models.CharField(max_length=20,null=True, blank=True)
+    firstName = models.CharField(max_length=100, db_column='first_name')
+    lastName = models.CharField(max_length=100, db_column='last_name',null=True, blank=True)
+    phone = models.CharField(max_length=20, null=True, blank=True)
+    mobile = models.CharField(max_length=20, null=True, blank=True)
     dob = models.DateField(null=True, blank=True)
-    gender = models.CharField(max_length=10,null=True, blank=True)
-    dp_id = models.TextField(null=True, blank=True)
-    video_id = models.TextField(null=True, blank=True)
-    experience_summary = models.TextField(null=True, blank=True)
-    technical_summary = models.TextField(null=True, blank=True)
-    street_address = models.CharField(max_length=255, null=True, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    gender = models.CharField(max_length=10, null=True, blank=True)
+    dpId = models.TextField(null=True, blank=True, db_column='dp_id')
+    videoId = models.TextField(null=True, blank=True, db_column='video_id')
+    experienceSummary = models.TextField(null=True, blank=True, db_column='experience_summary')
+    technicalSummary = models.TextField(null=True, blank=True, db_column='technical_summary')
+    streetAddress = models.CharField(max_length=255, null=True, blank=True, db_column='street_address')
+    createdAt = models.DateTimeField(auto_now_add=True, db_column='created_at')
+    updatedAt = models.DateTimeField(auto_now=True, db_column='updated_at')
 
     def __str__(self):
-        return f"Candidate(id={self.id}, user={self.user.username}, name={self.first_name} {self.last_name})"
+        return f"Candidate(id={self.id}, user={self.user.username}, name={self.firstName} {self.lastName})"
 
     class Meta:
         db_table = 'TBL_CANDIDATE'
 
 class CurrentAddress(models.Model):
-    candidate = models.OneToOneField(Candidate, on_delete=models.CASCADE, related_name='current_address')
-    street_address = models.CharField(max_length=255)
-    state = models.CharField(max_length=100)
-    city = models.CharField(max_length=100)
-    pincode = models.CharField(max_length=10)
-    is_current_address = models.BooleanField(default=True)
+    candidate = models.OneToOneField(Candidate, on_delete=models.CASCADE, related_name='currentAddress')
+    streetAddress = models.CharField(max_length=255, db_column='street_address',null=True, blank=True)
+    state = models.CharField(max_length=100,null=True, blank=True)
+    city = models.CharField(max_length=100,null=True, blank=True)
+    pincode = models.CharField(max_length=10,null=True, blank=True)
+    isCurrentAddress = models.BooleanField(default=True, db_column='is_current_address',null=True, blank=True)
 
     def __str__(self):
-        return f"{self.candidate.first_name}'s Address"
+        return f"{self.candidate.firstName}'s Address"
     
     class Meta:
         db_table = 'TBL_CURRENT_ADDRESS'
 
 class EducationalDegree(models.Model):
-    candidate = models.ForeignKey(Candidate, on_delete=models.CASCADE, related_name='educational_degrees')
-    degree = models.CharField(max_length=100)
-    university = models.CharField(max_length=200)
-    graduation_date = models.DateField()
-    graduation_month = models.CharField(max_length=20)
-    graduation_year = models.IntegerField()
-    location = models.CharField(max_length=200)
-    notes = models.TextField(blank=True)
-    field_of_study = models.CharField(max_length=200)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    candidate = models.ForeignKey(Candidate, on_delete=models.CASCADE, related_name='educationalDegrees')
+    degree = models.CharField(max_length=100,null=True, blank=True)
+    university = models.CharField(max_length=200,null=True, blank=True)
+    graduationDate = models.DateField(db_column='graduation_date',null=True, blank=True)
+    graduationMonth = models.CharField(max_length=20, db_column='graduation_month',null=True, blank=True)
+    graduationYear = models.IntegerField(db_column='graduation_year',null=True, blank=True)
+    location = models.CharField(max_length=200,null=True, blank=True)
+    notes = models.TextField(blank=True,null=True)
+    fieldOfStudy = models.CharField(max_length=200, db_column='field_of_study',null=True, blank=True)
+    createdAt = models.DateTimeField(auto_now_add=True, db_column='created_at')
+    updatedAt = models.DateTimeField(auto_now=True, db_column='updated_at')
 
     def __str__(self):
         return f"{self.degree} from {self.university}"
@@ -58,60 +58,59 @@ class EducationalDegree(models.Model):
         db_table = 'TBL_EDUCATIONAL_DEGREE'
 
 class SocialMediaLink(models.Model):
-    candidate = models.ForeignKey(Candidate, on_delete=models.CASCADE, related_name='social_media_links')
-    type = models.CharField(max_length=50)
-    url = models.URLField()
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    candidate = models.ForeignKey(Candidate, on_delete=models.CASCADE, related_name='socialMediaLinks')
+    type = models.CharField(max_length=50,null=True, blank=True)
+    url = models.URLField(null=True, blank=True)
+    createdAt = models.DateTimeField(auto_now_add=True, db_column='created_at')
+    updatedAt = models.DateTimeField(auto_now=True, db_column='updated_at')
 
     def __str__(self):
-        return f"{self.candidate.first_name}'s {self.type}"
+        return f"{self.candidate.firstName}'s {self.type}"
     
     class Meta:
         db_table = 'TBL_SOCIAL_MEDIA_LINK'
 
 class WorkExperience(models.Model):
-    candidate = models.ForeignKey(Candidate, on_delete=models.CASCADE, related_name='work_experiences')
-    designation = models.CharField(max_length=100,null=True, blank=True)
-    company_name = models.CharField(max_length=200,null=True, blank=True)
-    start_date = models.DateField(null=True, blank=True )
-    current_job = models.BooleanField(default=False)
-    end_date = models.DateField(null=True, blank=True)
+    candidate = models.ForeignKey(Candidate, on_delete=models.CASCADE, related_name='workExperiences')
+    designation = models.CharField(max_length=100, null=True, blank=True)
+    companyName = models.CharField(max_length=200, null=True, blank=True, db_column='company_name')
+    startDate = models.DateField(null=True, blank=True, db_column='start_date')
+    currentJob = models.BooleanField(default=False, db_column='current_job',null=True, blank=True)
+    endDate = models.DateField(null=True, blank=True, db_column='end_date')
     responsibilities = models.TextField(null=True, blank=True)
-    contact_number = models.CharField(max_length=20,null=True, blank=True)
-    location = models.CharField(max_length=200,null=True, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    contactNumber = models.CharField(max_length=20, null=True, blank=True, db_column='contact_number')
+    location = models.CharField(max_length=200, null=True, blank=True)
+    createdAt = models.DateTimeField(auto_now_add=True, db_column='created_at')
+    updatedAt = models.DateTimeField(auto_now=True, db_column='updated_at')
 
     def __str__(self):
-        return f"{self.designation} at {self.company_name}"
+        return f"{self.designation} at {self.companyName}"
 
     class Meta:
         db_table = 'TBL_WORK_EXPERIENCE'
 
 class CandidateSkill(models.Model):
-    candidate = models.ForeignKey(Candidate, on_delete=models.CASCADE, related_name='candidate_skills')
-    skill_name = models.CharField(max_length=100)
-    skill_level = models.IntegerField()
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    candidate = models.ForeignKey(Candidate, on_delete=models.CASCADE, related_name='candidateSkills')
+    skillName = models.CharField(max_length=100, db_column='skill_name',null=True, blank=True)
+    skillLevel = models.IntegerField(db_column='skill_level',null=True, blank=True)
+    createdAt = models.DateTimeField(auto_now_add=True, db_column='created_at')
+    updatedAt = models.DateTimeField(auto_now=True, db_column='updated_at')
 
     def __str__(self):
-        return f"{self.candidate.first_name}'s {self.skill_name}"
+        return f"{self.candidate.firstName}'s {self.skillName}"
     
     class Meta:
         db_table = 'TBL_CANDIDATE_SKILL'
 
-
 class CandidateHighlights(models.Model):
-    candidate = models.ForeignKey(Candidate, on_delete=models.CASCADE, related_name='candidate_highlights')
-    highlightkey = models.TextField()
-    highlightvalue = models.TextField()
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    candidate = models.ForeignKey(Candidate, on_delete=models.CASCADE, related_name='candidateHighlights')
+    highlightKey = models.TextField(db_column='highlightkey',null=True, blank=True)
+    highlightValue = models.TextField(db_column='highlightvalue',null=True, blank=True)
+    createdAt = models.DateTimeField(auto_now_add=True, db_column='created_at')
+    updatedAt = models.DateTimeField(auto_now=True, db_column='updated_at')
     
     def __str__(self):
-        return f"{self.candidate.first_name}'s {self.highlightkey}"
+        return f"{self.candidate.firstName}'s {self.highlightKey}"
     
     class Meta:
         db_table = 'TBL_CANDIDATE_HIGHLIGHTS'

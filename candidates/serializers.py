@@ -12,14 +12,9 @@ class CandidateHighlightsSerializer(serializers.ModelSerializer):
     class Meta:
         model = CandidateHighlights
         fields = '__all__'
-        read_only_fields = ('candidate',)   
-
-
+        read_only_fields = ('candidate',)
 
 class CurrentAddressSerializer(serializers.ModelSerializer):
-    streetAddress = serializers.CharField(source='street_address')
-    isCurrentAddress = serializers.BooleanField(source='is_current_address')
-
     class Meta:
         model = CurrentAddress
         fields = ['id', 'streetAddress', 'state', 'city', 'pincode', 'isCurrentAddress']
@@ -33,11 +28,6 @@ class CurrentAddressSerializer(serializers.ModelSerializer):
         }
 
 class EducationalDegreeSerializer(serializers.ModelSerializer):
-    graduationDate = serializers.DateField(source='graduation_date')
-    graduationMonth = serializers.CharField(source='graduation_month')
-    graduationYear = serializers.IntegerField(source='graduation_year')
-    fieldOfStudy = serializers.CharField(source='field_of_study')
-
     class Meta:
         model = EducationalDegree
         fields = ['id', 'degree', 'university', 'graduationDate', 'graduationMonth', 
@@ -65,13 +55,6 @@ class SocialMediaLinkSerializer(serializers.ModelSerializer):
         }
 
 class WorkExperienceSerializer(serializers.ModelSerializer):
-    companyName = serializers.CharField(source='company_name')
-    currentJob = serializers.BooleanField(source='current_job',required=False)
-    startDate = serializers.DateField(source='start_date',required=False)
-    endDate = serializers.DateField(source='end_date',required=False)
-    contactNumber = serializers.CharField(source='contact_number',required=False)
-    location = serializers.CharField(required=False)
-
     class Meta:
         model = WorkExperience
         fields = ['id', 'designation', 'companyName', 'currentJob', 'startDate', 
@@ -89,9 +72,6 @@ class WorkExperienceSerializer(serializers.ModelSerializer):
         }
 
 class CandidateSkillSerializer(serializers.ModelSerializer):
-    skillName = serializers.CharField(source='skill_name')
-    skillLevel = serializers.IntegerField(source='skill_level')
-
     class Meta:
         model = CandidateSkill
         fields = ['id', 'skillName', 'skillLevel']
@@ -103,19 +83,12 @@ class CandidateSkillSerializer(serializers.ModelSerializer):
 
 class CandidateSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
-    currentAddress = CurrentAddressSerializer(source='current_address', read_only=True)
-    educationalDegrees = EducationalDegreeSerializer(source='educational_degrees', many=True, read_only=True)
-    socialMediaLinks = SocialMediaLinkSerializer(source='social_media_links', many=True, read_only=True)
-    workExperiences = WorkExperienceSerializer(source='work_experiences', many=True, read_only=True)
-    candidateSkills = CandidateSkillSerializer(source='candidate_skills', many=True, read_only=True)
-    candidateHighlights = CandidateHighlightsSerializer(source='candidate_highlights', many=True, read_only=True)
-    firstName = serializers.CharField(source='first_name')
-    lastName = serializers.CharField(source='last_name')
-    experienceSummary = serializers.CharField(source='experience_summary')
-    technicalSummary = serializers.CharField(source='technical_summary')
-    streetAddress = serializers.CharField(source='street_address')
-    dpId = serializers.CharField(source='dp_id')
-    videoId = serializers.CharField(source='video_id')
+    currentAddress = CurrentAddressSerializer(read_only=True)
+    educationalDegrees = EducationalDegreeSerializer(many=True, read_only=True)
+    socialMediaLinks = SocialMediaLinkSerializer(many=True, read_only=True)
+    workExperiences = WorkExperienceSerializer(many=True, read_only=True)
+    candidateSkills = CandidateSkillSerializer(many=True, read_only=True)
+    candidateHighlights = CandidateHighlightsSerializer(many=True, read_only=True)
 
     class Meta:
         model = Candidate
@@ -147,9 +120,6 @@ class CandidateSerializer(serializers.ModelSerializer):
         return {k: v for k, v in representation.items() if v is not None}
 
 class CandidateSummarySerializer(serializers.ModelSerializer):
-    experienceSummary = serializers.CharField(source='experience_summary')
-    technicalSummary = serializers.CharField(source='technical_summary')
-
     class Meta:
         model = Candidate
         fields = ['id', 'experienceSummary', 'technicalSummary']
@@ -160,25 +130,14 @@ class CandidateSummarySerializer(serializers.ModelSerializer):
 
 class CreateCandidateSerializer(serializers.ModelSerializer):
     userId = serializers.IntegerField(write_only=True)
-    firstName = serializers.CharField(source='first_name', required=False)
-    lastName = serializers.CharField(source='last_name', required=False)
-    experienceSummary = serializers.CharField(source='experience_summary', required=False)
-    technicalSummary = serializers.CharField(source='technical_summary', required=False)
-    streetAddress = serializers.CharField(source='street_address', required=False)
-    dpId = serializers.CharField(source='dp_id', required=False)
-    videoId = serializers.CharField(source='video_id', required=False)
-    phone = serializers.CharField(required=False)
-    mobile = serializers.CharField(required=False)
-    dob = serializers.DateField(required=False)
-    gender = serializers.CharField(required=False)
-
+    
     # Allow nested writes for these fields
-    currentAddress = CurrentAddressSerializer(source='current_address', write_only=True, required=False)
-    educationalDegrees = EducationalDegreeSerializer(source='educational_degrees', many=True, write_only=True, required=False)
-    socialMediaLinks = SocialMediaLinkSerializer(source='social_media_links', many=True, write_only=True, required=False)
-    workExperiences = WorkExperienceSerializer(source='work_experiences', many=True, write_only=True, required=False)
-    candidateSkills = CandidateSkillSerializer(source='candidate_skills', many=True, write_only=True, required=False)
-    candidateHighlights = CandidateHighlightsSerializer(source='candidate_highlights', many=True, write_only=True, required=False)
+    currentAddress = CurrentAddressSerializer(write_only=True, required=False)
+    educationalDegrees = EducationalDegreeSerializer(many=True, write_only=True, required=False)
+    socialMediaLinks = SocialMediaLinkSerializer(many=True, write_only=True, required=False)
+    workExperiences = WorkExperienceSerializer(many=True, write_only=True, required=False)
+    candidateSkills = CandidateSkillSerializer(many=True, write_only=True, required=False)
+    candidateHighlights = CandidateHighlightsSerializer(many=True, write_only=True, required=False)
 
     class Meta:
         model = Candidate
@@ -218,12 +177,12 @@ class CreateCandidateSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({"userId": f"User with ID {user_id} not found"})
 
         # Extract nested data
-        current_address = validated_data.pop('current_address', None)
-        educational_degrees = validated_data.pop('educational_degrees', [])
-        social_media_links = validated_data.pop('social_media_links', [])
-        work_experiences = validated_data.pop('work_experiences', [])
-        candidate_skills = validated_data.pop('candidate_skills', [])
-        candidate_highlights = validated_data.pop('candidate_highlights', [])
+        current_address = validated_data.pop('currentAddress', None)
+        educational_degrees = validated_data.pop('educationalDegrees', [])
+        social_media_links = validated_data.pop('socialMediaLinks', [])
+        work_experiences = validated_data.pop('workExperiences', [])
+        candidate_skills = validated_data.pop('candidateSkills', [])
+        candidate_highlights = validated_data.pop('candidateHighlights', [])
 
         # Create Candidate object with user object directly
         try:
