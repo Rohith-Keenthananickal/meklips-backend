@@ -1,56 +1,103 @@
 from django.shortcuts import render
+from rest_framework.views import APIView
 from rest_framework import viewsets, status, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
+from utils.custom_response import responseWrapper
+from utils.decorators import swagger_response
+from rest_framework.decorators import api_view
+# from meklips.utils import api_view
 from .models import (
     Candidate, CurrentAddress, EducationalDegree,
     SocialMediaLink, WorkExperience, CandidateSkill
 )
 from .serializers import (
-    CandidateSerializer, CurrentAddressSerializer,
+    CandidateSerializer, CreateCandidateSerializer, CurrentAddressSerializer,
     EducationalDegreeSerializer, SocialMediaLinkSerializer,
     WorkExperienceSerializer, CandidateSkillSerializer,
     CandidateSummarySerializer
 )
 
-# Create your views here.
-
-class CandidateViewSet(viewsets.ModelViewSet):
-    """
-    ViewSet for managing candidate profiles.
+@swagger_response(request_serializer=CreateCandidateSerializer, response_serializer=CandidateSerializer, method='POST')
+@api_view(['POST'])
+def createCandidate(request):
+    serializer = CreateCandidateSerializer(data=request.data)
+    if serializer.is_valid():
+        candidate = serializer.save()  # Save candidate
+        candidate_serializer = CandidateSerializer(candidate)  # Serialize full candidate data
+        return responseWrapper(True, candidate_serializer.data, "Candidate created successfully", 201)
     
-    Provides CRUD operations for candidate profiles and related data.
-    """
-    serializer_class = CandidateSerializer
-    permission_classes = (permissions.IsAuthenticated,)
+    return responseWrapper(False, error=serializer.errors, message="Candidate creation failed", status_code=400)
 
-    def get_queryset(self):
-        """
-        Get the list of candidates for the current user.
-        """
-        return Candidate.objects.filter(user=self.request.user)
 
-    def perform_create(self, serializer):
-        """
-        Create a new candidate profile for the current user.
-        """
-        serializer.save(user=self.request.user)
 
-    @action(detail=True, methods=['patch'])
-    def update_summary(self, request, pk=None):
-        """
-        Update the experience and technical summary of a candidate.
+@swagger_response(response_serializer=CandidateSerializer,method='GET')
+@api_view(['GET'])
+def getCandidateById(request, userId):
+    try:
+        candidate = Candidate.objects.get(user=userId)
+        serializer = CandidateSerializer(candidate)
+        return responseWrapper(True, serializer.data, "Candidate retrieved successfully", 200)
+    except Candidate.DoesNotExist:
+        return responseWrapper(False, None, "Candidate not found", 404)
+
+# class CandidateView(APIView):
+#     @swagger_response(response_serializer=CandidateSerializer)
+#     def get(self, request, userId):
+#         try:
+#             candidate = Candidate.objects.get(user=userId)
+#             serializer = CandidateSerializer(candidate)
+#             return responseWrapper(True, serializer.data, "Candidate retrieved successfully", 200)
+#         except Candidate.DoesNotExist:
+#             return responseWrapper(False, None, "Candidate not found", 404)
+
+
+#     @swagger_response(request_serializer=CandidateSerializer, response_serializer=CandidateSerializer)  # ✅ Request + Response
+#     def post(self, request):
+#         serializer = CandidateSerializer(data=request.data)
+#         if serializer.is_valid():
+#             serializer.save()
+#             return responseWrapper(True, serializer.data, "Candidate created successfully", 201)
+#         return responseWrapper(False, serializer.errors, "Candidate creation failed", 400)
+
+# class CandidateViewSet(viewsets.ModelViewSet):
+#     """
+#     ViewSet for managing candidate profiles.
+    
+#     Provides CRUD operations for candidate profiles and related data.
+#     """
+#     serializer_class = CandidateSerializer
+#     permission_classes = (permissions.IsAuthenticated,)
+
+#     def get_queryset(self):
+#         """
+#         Get the list of candidates for the current user.
+#         """
+#         return Candidate.objects.filter(user=self.request.user)
+
+#     def perform_create(self, serializer):
+#         """
+#         Create a new candidate profile for the current user.
+#         """
+#         serializer.save(user=self.request.user)
+
+#     @action(detail=True, methods=['patch'])
+#     def update_summary(self, request, pk=None):
+#         """
+#         Update the experience and technical summary of a candidate.
         
-        Parameters:
-            experience_summary (string): Updated experience summary
-            technical_summary (string): Updated technical summary
-        """
-        candidate = self.get_object()
-        serializer = CandidateSummarySerializer(candidate, data=request.data, partial=True)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+#         Parameters:
+#             experience_summary (string): Updated experience summary
+#             technical_summary (string): Updated technical summary
+#         """
+#         candidate = self.get_object()
+#         serializer = CandidateSummarySerializer(candidate, data=request.data, partial=True)
+#         if serializer.is_valid():
+#             serializer.save()
+#             return Response(serializer.data)
+#         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class CurrentAddressViewSet(viewsets.ModelViewSet):
     """

@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from users.models import User
 from users.serializers import UserSerializer
 from .models import (
     Candidate, CurrentAddress, EducationalDegree,
@@ -104,3 +105,74 @@ class CandidateSummarySerializer(serializers.ModelSerializer):
             'experience_summary': {'help_text': 'Summary of work experience'},
             'technical_summary': {'help_text': 'Summary of technical skills'}
         } 
+
+
+from rest_framework import serializers
+from users.models import User
+from .models import Candidate, CurrentAddress, EducationalDegree, SocialMediaLink, WorkExperience, CandidateSkill
+from .serializers import (
+    CurrentAddressSerializer, EducationalDegreeSerializer, SocialMediaLinkSerializer, 
+    WorkExperienceSerializer, CandidateSkillSerializer
+)
+
+class CreateCandidateSerializer(serializers.ModelSerializer):
+    userId = serializers.IntegerField(write_only=True)  # Accept only userId from request
+
+    # Allow nested writes for these fields
+    current_address = CurrentAddressSerializer(write_only=True, required=False)
+    educational_degrees = EducationalDegreeSerializer(many=True, write_only=True, required=False)
+    social_media_links = SocialMediaLinkSerializer(many=True, write_only=True, required=False)
+    work_experiences = WorkExperienceSerializer(many=True, write_only=True, required=False)
+    candidate_skills = CandidateSkillSerializer(many=True, write_only=True, required=False)
+
+    class Meta:
+        model = Candidate
+        fields = [
+            'userId', 'first_name', 'last_name', 'phone', 'mobile', 'dob', 'gender', 
+            'dp_id', 'video_id', 'experience_summary', 'technical_summary', 'street_address',
+            'current_address', 'educational_degrees', 'social_media_links', 
+            'work_experiences', 'candidate_skills',
+            'current_address', 'educational_degrees', 'social_media_links',
+            'work_experiences', 'candidate_skills'
+        ]
+
+    def create(self, validated_data):
+        user_id = validated_data.pop('userId')
+
+        # Fetch user object using userId
+        try:
+            print(User.objects.all())
+            user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            raise serializers.ValidationError({"userId": "User not found"})
+
+        # Extract nested data
+        current_address = validated_data.pop('current_address', None)
+        educational_degrees = validated_data.pop('educational_degrees', [])
+        social_media_links = validated_data.pop('social_media_links', [])
+        work_experiences = validated_data.pop('work_experiences', [])
+        candidate_skills = validated_data.pop('candidate_skills', [])
+
+        # Create Candidate object
+        candidate = Candidate.objects.create(user=user, **validated_data)
+
+        # Handle nested fields if provided
+        if current_address:
+            CurrentAddress.objects.create(candidate=candidate, **current_address)
+        if educational_degrees:
+            for edu_data in educational_degrees:
+                EducationalDegree.objects.create(candidate=candidate, **edu_data)
+        if social_media_links:
+            for social_data in social_media_links:
+                SocialMediaLink.objects.create(candidate=candidate, **social_data)
+        if work_experiences:
+            for work_data in work_experiences:
+                WorkExperience.objects.create(candidate=candidate, **work_data)
+        if candidate_skills:
+            for skill_data in candidate_skills:
+                CandidateSkill.objects.create(candidate=candidate, **skill_data)
+
+        return candidate
+
+        
+

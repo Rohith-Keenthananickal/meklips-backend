@@ -19,6 +19,9 @@ class Candidate(models.Model):
 
     def __str__(self):
         return f"{self.first_name} {self.last_name}"
+    
+    class Meta:
+        db_table = 'TBL_CANDIDATE'
 
 class CurrentAddress(models.Model):
     candidate = models.OneToOneField(Candidate, on_delete=models.CASCADE, related_name='current_address')
@@ -30,6 +33,9 @@ class CurrentAddress(models.Model):
 
     def __str__(self):
         return f"{self.candidate.first_name}'s Address"
+    
+    class Meta:
+        db_table = 'TBL_CURRENT_ADDRESS'
 
 class EducationalDegree(models.Model):
     candidate = models.ForeignKey(Candidate, on_delete=models.CASCADE, related_name='educational_degrees')
@@ -46,6 +52,9 @@ class EducationalDegree(models.Model):
 
     def __str__(self):
         return f"{self.degree} from {self.university}"
+    
+    class Meta:
+        db_table = 'TBL_EDUCATIONAL_DEGREE'
 
 class SocialMediaLink(models.Model):
     candidate = models.ForeignKey(Candidate, on_delete=models.CASCADE, related_name='social_media_links')
@@ -56,6 +65,9 @@ class SocialMediaLink(models.Model):
 
     def __str__(self):
         return f"{self.candidate.first_name}'s {self.type}"
+    
+    class Meta:
+        db_table = 'TBL_SOCIAL_MEDIA_LINK'
 
 class WorkExperience(models.Model):
     candidate = models.ForeignKey(Candidate, on_delete=models.CASCADE, related_name='work_experiences')
@@ -73,6 +85,9 @@ class WorkExperience(models.Model):
     def __str__(self):
         return f"{self.designation} at {self.company_name}"
 
+    class Meta:
+        db_table = 'TBL_WORK_EXPERIENCE'
+
 class CandidateSkill(models.Model):
     candidate = models.ForeignKey(Candidate, on_delete=models.CASCADE, related_name='candidate_skills')
     skill_name = models.CharField(max_length=100)
@@ -82,3 +97,6 @@ class CandidateSkill(models.Model):
 
     def __str__(self):
         return f"{self.candidate.first_name}'s {self.skill_name}"
+    
+    class Meta:
+        db_table = 'TBL_CANDIDATE_SKILL'
