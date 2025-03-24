@@ -3,7 +3,8 @@ from rest_framework.response import Response
 def responseWrapper(success, data=None, message=None, status_code=200, error=None):
     response_data = {
         "status": "success" if success else "error",
-        "message": message
+        "message": message,
+        "statusCode": status_code
     }
     
     if success:

@@ -3,6 +3,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.contrib.auth import get_user_model
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework import serializers
 
 from utils.custom_response import responseWrapper
 from utils.decorators import swagger_response
@@ -20,11 +21,19 @@ class SignupView(APIView):
         responses={201: UserSerializer, 400: "Bad Request"}
     )
     def post(self, request):
-        serializer = SignupSerializer(data=request.data)
-        if serializer.is_valid():
-            user = serializer.save()
-            return Response(UserSerializer(user).data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            # Check if user with email already exists
+            email = request.data.get('email')
+            if User.objects.filter(email=email).exists():
+                return responseWrapper(False, error="A user with this email already exists", message="Signup failed", status_code=status.HTTP_400_BAD_REQUEST)
+
+            serializer = SignupSerializer(data=request.data)
+            if serializer.is_valid():
+                user = serializer.save()
+                return responseWrapper(True, UserSerializer(user).data, "User created successfully", status.HTTP_201_CREATED)
+            return responseWrapper(False, error=serializer.errors, message="Signup failed", status_code=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return responseWrapper(False, error=str(e), message="Signup failed", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class LoginView(APIView):
@@ -32,34 +41,25 @@ class LoginView(APIView):
 
     @swagger_auto_schema(
         request_body=LoginSerializer,
-        # responses={
-        #     200: {
-        #         "type": "object",
-        #         "properties": {
-        #             "user": UserSerializer,
-        #             "tokens": {
-        #                 "type": "object",
-        #                 "properties": {
-        #                     "access": {"type": "string"},
-        #                     "refresh": {"type": "string"}
-        #                 }
-        #             }
-        #         }
-        #     },
-        #     400: "Bad Request"
-        # }
     )
     def post(self, request):
-        serializer = LoginSerializer(data=request.data)
-        if serializer.is_valid():
-            user = User.objects.get(email=serializer.validated_data['email'])
-            refresh = RefreshToken.for_user(user)
-            
-            return responseWrapper(True, {
-                'user': UserSerializer(user).data,
-                'tokens': {
-                    'refresh': str(refresh),
-                    'access': str(refresh.access_token),
-                }
-            }, "Login successful", 200)
-        return responseWrapper(False,error=serializer.errors, message="Login failed", status_code=status.HTTP_400_BAD_REQUEST)
+        try:
+            serializer = LoginSerializer(data=request.data)
+            if serializer.is_valid():
+                user = User.objects.get(email=serializer.validated_data['email'])
+                refresh = RefreshToken.for_user(user)
+                
+                return responseWrapper(True, {
+                    'user': UserSerializer(user).data,
+                    'tokens': {
+                        'refresh': str(refresh),
+                        'access': str(refresh.access_token),
+                    }
+                }, "Login successful", status_code=200)
+            return responseWrapper(False, error=serializer.errors, message="Login failed", status_code=status.HTTP_400_BAD_REQUEST)
+        except serializers.ValidationError as e:
+            # Extract the actual error message from the ValidationError
+            error_message = str(e.detail[0]) if isinstance(e.detail, list) else str(e.detail)
+            return responseWrapper(False, error=error_message, message="Login failed", status_code=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return responseWrapper(False, error=str(e), message="Login failed", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)

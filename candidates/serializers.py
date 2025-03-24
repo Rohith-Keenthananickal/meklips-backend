@@ -17,31 +17,40 @@ class CandidateHighlightsSerializer(serializers.ModelSerializer):
 
 
 class CurrentAddressSerializer(serializers.ModelSerializer):
+    streetAddress = serializers.CharField(source='street_address')
+    isCurrentAddress = serializers.BooleanField(source='is_current_address')
+
     class Meta:
         model = CurrentAddress
-        fields = '__all__'
+        fields = ['id', 'streetAddress', 'state', 'city', 'pincode', 'isCurrentAddress']
         read_only_fields = ('candidate',)
         extra_kwargs = {
-            'street_address': {'help_text': 'Street address of the candidate'},
+            'streetAddress': {'help_text': 'Street address of the candidate'},
             'state': {'help_text': 'State of residence'},
             'city': {'help_text': 'City of residence'},
             'pincode': {'help_text': 'Postal/ZIP code'},
-            'is_current_address': {'help_text': 'Whether this is the current address'}
+            'isCurrentAddress': {'help_text': 'Whether this is the current address'}
         }
 
 class EducationalDegreeSerializer(serializers.ModelSerializer):
+    graduationDate = serializers.DateField(source='graduation_date')
+    graduationMonth = serializers.CharField(source='graduation_month')
+    graduationYear = serializers.IntegerField(source='graduation_year')
+    fieldOfStudy = serializers.CharField(source='field_of_study')
+
     class Meta:
         model = EducationalDegree
-        fields = '__all__'
+        fields = ['id', 'degree', 'university', 'graduationDate', 'graduationMonth', 
+                 'graduationYear', 'location', 'fieldOfStudy', 'notes']
         read_only_fields = ('candidate',)
         extra_kwargs = {
             'degree': {'help_text': 'Name of the degree'},
             'university': {'help_text': 'Name of the university'},
-            'graduation_date': {'help_text': 'Date of graduation'},
-            'graduation_month': {'help_text': 'Month of graduation'},
-            'graduation_year': {'help_text': 'Year of graduation'},
+            'graduationDate': {'help_text': 'Date of graduation'},
+            'graduationMonth': {'help_text': 'Month of graduation'},
+            'graduationYear': {'help_text': 'Year of graduation'},
             'location': {'help_text': 'Location of the university'},
-            'field_of_study': {'help_text': 'Major or field of study'},
+            'fieldOfStudy': {'help_text': 'Major or field of study'},
             'notes': {'help_text': 'Additional notes about the degree'}
         }
 
@@ -56,85 +65,128 @@ class SocialMediaLinkSerializer(serializers.ModelSerializer):
         }
 
 class WorkExperienceSerializer(serializers.ModelSerializer):
+    companyName = serializers.CharField(source='company_name')
+    currentJob = serializers.BooleanField(source='current_job',required=False)
+    startDate = serializers.DateField(source='start_date',required=False)
+    endDate = serializers.DateField(source='end_date',required=False)
+    contactNumber = serializers.CharField(source='contact_number',required=False)
+    location = serializers.CharField(required=False)
+
     class Meta:
         model = WorkExperience
-        fields = '__all__'
+        fields = ['id', 'designation', 'companyName', 'currentJob', 'startDate', 
+                 'endDate', 'responsibilities', 'contactNumber', 'location']
         read_only_fields = ('candidate',)
         extra_kwargs = {
             'designation': {'help_text': 'Job title or designation'},
-            'company_name': {'help_text': 'Name of the company'},
-            'start_date': {'help_text': 'Start date of employment'},
-            'current_job': {'help_text': 'Whether this is the current job'},
-            'end_date': {'help_text': 'End date of employment (if not current job)'},
+            'companyName': {'help_text': 'Name of the company'},
+            'startDate': {'help_text': 'Start date of employment'},
+            'currentJob': {'help_text': 'Whether this is the current job'},
+            'endDate': {'help_text': 'End date of employment (if not current job)'},
             'responsibilities': {'help_text': 'Job responsibilities and achievements'},
-            'contact_number': {'help_text': 'Contact number for reference'},
+            'contactNumber': {'help_text': 'Contact number for reference'},
             'location': {'help_text': 'Location of employment'}
         }
 
 class CandidateSkillSerializer(serializers.ModelSerializer):
+    skillName = serializers.CharField(source='skill_name')
+    skillLevel = serializers.IntegerField(source='skill_level')
+
     class Meta:
         model = CandidateSkill
-        fields = '__all__'
+        fields = ['id', 'skillName', 'skillLevel']
         read_only_fields = ('candidate',)
         extra_kwargs = {
-            'skill_name': {'help_text': 'Name of the skill'},
-            'skill_level': {'help_text': 'Proficiency level (1-5)'}
+            'skillName': {'help_text': 'Name of the skill'},
+            'skillLevel': {'help_text': 'Proficiency level (1-5)'}
         }
 
 class CandidateSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
-    current_address = CurrentAddressSerializer(read_only=True)
-    educational_degrees = EducationalDegreeSerializer(many=True, read_only=True)
-    social_media_links = SocialMediaLinkSerializer(many=True, read_only=True)
-    work_experiences = WorkExperienceSerializer(many=True, read_only=True)
-    candidate_skills = CandidateSkillSerializer(many=True, read_only=True)
-    candidate_highlights = CandidateHighlightsSerializer(many=True, read_only=True)
+    currentAddress = CurrentAddressSerializer(source='current_address', read_only=True)
+    educationalDegrees = EducationalDegreeSerializer(source='educational_degrees', many=True, read_only=True)
+    socialMediaLinks = SocialMediaLinkSerializer(source='social_media_links', many=True, read_only=True)
+    workExperiences = WorkExperienceSerializer(source='work_experiences', many=True, read_only=True)
+    candidateSkills = CandidateSkillSerializer(source='candidate_skills', many=True, read_only=True)
+    candidateHighlights = CandidateHighlightsSerializer(source='candidate_highlights', many=True, read_only=True)
+    firstName = serializers.CharField(source='first_name')
+    lastName = serializers.CharField(source='last_name')
+    experienceSummary = serializers.CharField(source='experience_summary')
+    technicalSummary = serializers.CharField(source='technical_summary')
+    streetAddress = serializers.CharField(source='street_address')
+    dpId = serializers.CharField(source='dp_id')
+    videoId = serializers.CharField(source='video_id')
 
     class Meta:
         model = Candidate
-        fields = '__all__'
+        fields = ['id', 'user', 'firstName', 'lastName', 'phone', 'mobile', 'dob', 'gender',
+                 'dpId', 'videoId', 'experienceSummary', 'technicalSummary', 'streetAddress',
+                 'currentAddress', 'educationalDegrees', 'socialMediaLinks',
+                 'workExperiences', 'candidateSkills', 'candidateHighlights']
         read_only_fields = ('user',)
         extra_kwargs = {
-            'first_name': {'help_text': 'First name of the candidate'},
-            'last_name': {'help_text': 'Last name of the candidate'},
+            'firstName': {'help_text': 'First name of the candidate'},
+            'lastName': {'help_text': 'Last name of the candidate'},
             'phone': {'help_text': 'Primary phone number'},
             'mobile': {'help_text': 'Mobile phone number'},
             'dob': {'help_text': 'Date of birth'},
             'gender': {'help_text': 'Gender of the candidate'},
-            'dp_id': {'help_text': 'Display picture ID'},
-            'video_id': {'help_text': 'Video profile ID'},
-            'experience_summary': {'help_text': 'Summary of work experience'},
-            'technical_summary': {'help_text': 'Summary of technical skills'},
-            'street_address': {'help_text': 'Current street address'}
+            'dpId': {'help_text': 'Display picture ID'},
+            'videoId': {'help_text': 'Video profile ID'},
+            'experienceSummary': {'help_text': 'Summary of work experience'},
+            'technicalSummary': {'help_text': 'Summary of technical skills'},
+            'streetAddress': {'help_text': 'Current street address'}
         }
 
+    def to_representation(self, instance):
+        """
+        Convert the instance to a dictionary, excluding null values.
+        """
+        representation = super().to_representation(instance)
+        # Remove null values from the representation
+        return {k: v for k, v in representation.items() if v is not None}
+
 class CandidateSummarySerializer(serializers.ModelSerializer):
+    experienceSummary = serializers.CharField(source='experience_summary')
+    technicalSummary = serializers.CharField(source='technical_summary')
+
     class Meta:
         model = Candidate
-        fields = ('id', 'experience_summary', 'technical_summary')
+        fields = ['id', 'experienceSummary', 'technicalSummary']
         extra_kwargs = {
-            'experience_summary': {'help_text': 'Summary of work experience'},
-            'technical_summary': {'help_text': 'Summary of technical skills'}
+            'experienceSummary': {'help_text': 'Summary of work experience'},
+            'technicalSummary': {'help_text': 'Summary of technical skills'}
         }
 
 class CreateCandidateSerializer(serializers.ModelSerializer):
-    userId = serializers.IntegerField(write_only=True)  # Accept only userId from request
+    userId = serializers.IntegerField(write_only=True)
+    firstName = serializers.CharField(source='first_name', required=False)
+    lastName = serializers.CharField(source='last_name', required=False)
+    experienceSummary = serializers.CharField(source='experience_summary', required=False)
+    technicalSummary = serializers.CharField(source='technical_summary', required=False)
+    streetAddress = serializers.CharField(source='street_address', required=False)
+    dpId = serializers.CharField(source='dp_id', required=False)
+    videoId = serializers.CharField(source='video_id', required=False)
+    phone = serializers.CharField(required=False)
+    mobile = serializers.CharField(required=False)
+    dob = serializers.DateField(required=False)
+    gender = serializers.CharField(required=False)
 
     # Allow nested writes for these fields
-    current_address = CurrentAddressSerializer(write_only=True, required=False)
-    educational_degrees = EducationalDegreeSerializer(many=True, write_only=True, required=False)
-    social_media_links = SocialMediaLinkSerializer(many=True, write_only=True, required=False)
-    work_experiences = WorkExperienceSerializer(many=True, write_only=True, required=False)
-    candidate_skills = CandidateSkillSerializer(many=True, write_only=True, required=False)
-    candidate_highlights = CandidateHighlightsSerializer(many=True, write_only=True, required=False)
+    currentAddress = CurrentAddressSerializer(source='current_address', write_only=True, required=False)
+    educationalDegrees = EducationalDegreeSerializer(source='educational_degrees', many=True, write_only=True, required=False)
+    socialMediaLinks = SocialMediaLinkSerializer(source='social_media_links', many=True, write_only=True, required=False)
+    workExperiences = WorkExperienceSerializer(source='work_experiences', many=True, write_only=True, required=False)
+    candidateSkills = CandidateSkillSerializer(source='candidate_skills', many=True, write_only=True, required=False)
+    candidateHighlights = CandidateHighlightsSerializer(source='candidate_highlights', many=True, write_only=True, required=False)
 
     class Meta:
         model = Candidate
         fields = [
-            'userId', 'first_name', 'last_name', 'phone', 'mobile', 'dob', 'gender', 
-            'dp_id', 'video_id', 'experience_summary', 'technical_summary', 'street_address',
-            'current_address', 'educational_degrees', 'social_media_links', 
-            'work_experiences', 'candidate_skills', 'candidate_highlights'
+            'userId', 'firstName', 'lastName', 'phone', 'mobile', 'dob', 'gender', 
+            'dpId', 'videoId', 'experienceSummary', 'technicalSummary', 'streetAddress',
+            'currentAddress', 'educationalDegrees', 'socialMediaLinks', 
+            'workExperiences', 'candidateSkills', 'candidateHighlights'
         ]
 
     def validate_userId(self, value):
@@ -197,7 +249,6 @@ class CreateCandidateSerializer(serializers.ModelSerializer):
         if candidate_highlights:
             for highlight_data in candidate_highlights:
                 CandidateHighlights.objects.create(candidate=candidate, **highlight_data)
-
 
         return candidate
 

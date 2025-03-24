@@ -7,8 +7,9 @@ from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from utils.custom_response import responseWrapper
 from utils.decorators import swagger_response
-from rest_framework.decorators import api_view, parser_classes
+from rest_framework.decorators import api_view, parser_classes, permission_classes
 from rest_framework.parsers import MultiPartParser
+import re
 # from meklips.utils import api_view
 from .models import (
     Candidate, CurrentAddress, EducationalDegree,
@@ -24,6 +25,17 @@ from django.db import transaction
 import os
 from django.conf import settings
 
+def camel_to_snake(name):
+    """Convert camelCase to snake_case."""
+    pattern = re.compile(r'(?<!^)(?=[A-Z])')
+    return pattern.sub('_', name).lower()
+
+def convert_dict_keys(data):
+    """Convert all dictionary keys from camelCase to snake_case."""
+    if not isinstance(data, dict):
+        return data
+    return {camel_to_snake(k): v for k, v in data.items()}
+
 @swagger_response(request_serializer=CreateCandidateSerializer, response_serializer=CandidateSerializer, method='POST')
 @api_view(['POST'])
 def createCandidate(request):
@@ -32,7 +44,7 @@ def createCandidate(request):
         candidate = serializer.save()  # Save candidate
         candidate_serializer = CandidateSerializer(candidate)  # Serialize full candidate data
         return responseWrapper(True, candidate_serializer.data, "Candidate created successfully", 201)
-    
+    print(serializer.errors)
     return responseWrapper(False, error=serializer.errors, message="Candidate creation failed", status_code=400)
 
 
@@ -76,24 +88,27 @@ class CandidateDetailView(APIView):
 
                     # Update related objects dynamically
                     related_models = {
-                        "current_address": CurrentAddress,
-                        "work_experiences": WorkExperience,
-                        "educational_degrees": EducationalDegree,
-                        "social_media_links": SocialMediaLink,
-                        "candidate_skills": CandidateSkill,
-                        "candidate_highlights": CandidateHighlights
+                        "currentAddress": CurrentAddress,
+                        "workExperiences": WorkExperience,
+                        "educationalDegrees": EducationalDegree,
+                        "socialMediaLinks": SocialMediaLink,
+                        "candidateSkills": CandidateSkill,
+                        "candidateHighlights": CandidateHighlights
                     }
 
                     for field_name, model in related_models.items():
                         related_data = request.data.get(field_name)
                         if related_data:
                             # Handle single object (OneToOne)
-                            if field_name == "current_address":
+                            if field_name == "currentAddress":
                                 # Remove candidate field if present
                                 if "candidate" in related_data:
                                     del related_data["candidate"]
                                 if "id" in related_data:
                                     del related_data["id"]
+                                
+                                # Convert camelCase to snake_case
+                                related_data = convert_dict_keys(related_data)
                                 
                                 # Update or create current address
                                 CurrentAddress.objects.update_or_create(
@@ -102,18 +117,43 @@ class CandidateDetailView(APIView):
                                 )
                             # Handle multiple objects (ForeignKey)
                             else:
-                                # Delete existing objects
-                                model.objects.filter(candidate=candidate).delete()
+                                # Get existing objects
+                                existing_objects = model.objects.filter(candidate=candidate)
                                 
-                                # Create new objects
-                                if isinstance(related_data, list):
-                                    for item in related_data:
-                                        # Remove candidate and id fields if present
-                                        if "candidate" in item:
-                                            del item["candidate"]
+                                # Create a set of existing IDs
+                                existing_ids = set(existing_objects.values_list('id', flat=True))
+                                
+                                # Process each item in the request data
+                                for item in related_data:
+                                    # Ensure item is a dictionary
+                                    if not isinstance(item, dict):
+                                        continue
+                                        
+                                    # Remove candidate and id fields if present
+                                    if "candidate" in item:
+                                        del item["candidate"]
+                                    
+                                    # If item has an ID and exists, update it
+                                    if "id" in item and item["id"] in existing_ids:
+                                        obj_id = item.pop("id")
+                                        # Convert camelCase to snake_case
+                                        item = convert_dict_keys(item)
+                                        model.objects.filter(id=obj_id).update(**item)
+                                        existing_ids.remove(obj_id)
+                                    # If no ID or ID doesn't exist, create new object
+                                    else:
                                         if "id" in item:
                                             del item["id"]
-                                        model.objects.create(candidate=candidate, **item)
+                                        # Convert camelCase to snake_case
+                                        item = convert_dict_keys(item)
+                                        # Ensure all values in item are not None
+                                        item = {k: v for k, v in item.items() if v is not None}
+                                        if item:  # Only create if we have valid data
+                                            model.objects.create(candidate=candidate, **item)
+                                
+                                # Delete objects that were not in the request
+                                if existing_ids:
+                                    model.objects.filter(id__in=existing_ids).delete()
 
                 return responseWrapper(True, serializer.data, "Candidate and related data updated successfully", 200)
 
