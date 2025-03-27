@@ -16,7 +16,7 @@ from .models import (
     SocialMediaLink, WorkExperience, CandidateSkill, CandidateHighlights
 )
 from .serializers import (
-    CandidateSerializer, CreateCandidateSerializer, CurrentAddressSerializer,
+    CandidateHighlightsSerializer, CandidateSerializer, CreateCandidateSerializer, CurrentAddressSerializer,
     EducationalDegreeSerializer, SocialMediaLinkSerializer,
     WorkExperienceSerializer, CandidateSkillSerializer,
     CandidateSummarySerializer
@@ -88,74 +88,56 @@ class CandidateDetailView(APIView):
 
                     # Update related objects dynamically
                     related_models = {
-                        "currentAddress": CurrentAddress,
-                        "workExperiences": WorkExperience,
-                        "educationalDegrees": EducationalDegree,
-                        "socialMediaLinks": SocialMediaLink,
-                        "candidateSkills": CandidateSkill,
-                        "candidateHighlights": CandidateHighlights
+                        "currentAddress": (CurrentAddress, CurrentAddressSerializer),
+                        "workExperiences": (WorkExperience, WorkExperienceSerializer),
+                        "educationalDegrees": (EducationalDegree, EducationalDegreeSerializer),
+                        "socialMediaLinks": (SocialMediaLink, SocialMediaLinkSerializer),
+                        "candidateSkills": (CandidateSkill, CandidateSkillSerializer),
+                        "candidateHighlights": (CandidateHighlights, CandidateHighlightsSerializer)
                     }
 
-                    for field_name, model in related_models.items():
+                    for field_name, (model, serializer_class) in related_models.items():
                         related_data = request.data.get(field_name)
                         if related_data:
                             # Handle single object (OneToOne)
                             if field_name == "currentAddress":
-                                # Remove candidate field if present
-                                if "candidate" in related_data:
-                                    del related_data["candidate"]
-                                if "id" in related_data:
-                                    del related_data["id"]
-                                
-                                # Convert camelCase to snake_case
-                                related_data = convert_dict_keys(related_data)
-                                
-                                # Update or create current address
-                                CurrentAddress.objects.update_or_create(
-                                    candidate=candidate,
-                                    defaults=related_data
-                                )
+                                # Validate and deserialize the data
+                                address_serializer = serializer_class(data=related_data)
+                                if address_serializer.is_valid():
+                                    validated_data = address_serializer.validated_data
+                                    # Update or create current address
+                                    CurrentAddress.objects.update_or_create(
+                                        candidate=candidate,
+                                        defaults=validated_data
+                                    )
                             # Handle multiple objects (ForeignKey)
                             else:
                                 # Get existing objects
                                 existing_objects = model.objects.filter(candidate=candidate)
-                                
-                                # Create a set of existing IDs
                                 existing_ids = set(existing_objects.values_list('id', flat=True))
                                 
                                 # Process each item in the request data
                                 for item in related_data:
-                                    # Ensure item is a dictionary
-                                    if not isinstance(item, dict):
-                                        continue
+                                    # Validate data using the appropriate serializer
+                                    item_serializer = serializer_class(data=item)
+                                    if item_serializer.is_valid():
+                                        validated_item = item_serializer.validated_data
                                         
-                                    # Remove candidate and id fields if present
-                                    if "candidate" in item:
-                                        del item["candidate"]
-                                    
-                                    # If item has an ID and exists, update it
-                                    if "id" in item and item["id"] in existing_ids:
-                                        obj_id = item.pop("id")
-                                        # Convert camelCase to snake_case
-                                        item = convert_dict_keys(item)
-                                        model.objects.filter(id=obj_id).update(**item)
-                                        existing_ids.remove(obj_id)
-                                    # If no ID or ID doesn't exist, create new object
-                                    else:
-                                        if "id" in item:
-                                            del item["id"]
-                                        # Convert camelCase to snake_case
-                                        item = convert_dict_keys(item)
-                                        # Ensure all values in item are not None
-                                        item = {k: v for k, v in item.items() if v is not None}
-                                        if item:  # Only create if we have valid data
-                                            model.objects.create(candidate=candidate, **item)
+                                        # If item has an ID and exists, update it
+                                        if "id" in item and item["id"] in existing_ids:
+                                            obj_id = item["id"]
+                                            model.objects.filter(id=obj_id).update(**validated_item)
+                                            existing_ids.remove(obj_id)
+                                        else:
+                                            # Create new object with validated data
+                                            model.objects.create(candidate=candidate, **validated_item)
                                 
                                 # Delete objects that were not in the request
                                 if existing_ids:
                                     model.objects.filter(id__in=existing_ids).delete()
 
                 return responseWrapper(True, serializer.data, "Candidate and related data updated successfully", 200)
+            return responseWrapper(False, serializer.errors, "Invalid data provided", 400)
 
         except Candidate.DoesNotExist:
             return responseWrapper(False, None, "Candidate not found", 404)
@@ -183,9 +165,10 @@ def upload_user_image(request, candidateId):
             return responseWrapper(False, None, "No image file provided", 400)
             
         image_file = request.FILES['image']
-        
+        print(image_file.content_type)
         # Validate file type
-        if not image_file.content_type.startswith('image/'):
+        if not image_file.content_type.startswith('image/') and not image_file.content_type.startswith('application/octet-stream'):
+            print(image_file.content_type)
             return responseWrapper(False, None, "Invalid file type. Only image files are allowed", 400)
             
         # Create media directory if it doesn't exist
@@ -203,12 +186,18 @@ def upload_user_image(request, candidateId):
                 destination.write(chunk)
                 
         # Update candidate's dp_id with the file ID
-        candidate.dp_id = filename
+        candidate.dpId = filename
         candidate.save()
+        print(candidate)
+        print(candidate.dpId)
         
         # Return the full URL including domain
         image_url = request.build_absolute_uri(f"/media/user_images/{filename}")
-        return responseWrapper(True, {"image_url": image_url}, "Image uploaded successfully", 200)
+        response ={
+            "image_url": image_url,
+            "dpId": filename
+        } 
+        return responseWrapper(True, response, "Image uploaded successfully", 200)
         
     except Candidate.DoesNotExist:
         return responseWrapper(False, None, "Candidate not found", 404)
@@ -237,8 +226,7 @@ def upload_profile_video(request, candidateId):
             
         video_file = request.FILES['video']
         
-        # Validate file type
-        if not video_file.content_type.startswith('video/'):
+        if not video_file.content_type.startswith('video/') and not video_file.content_type.startswith('application/octet-stream'):
             return responseWrapper(False, None, "Invalid file type. Only video files are allowed", 400)
             
         # Create media directory if it doesn't exist
@@ -256,7 +244,7 @@ def upload_profile_video(request, candidateId):
                 destination.write(chunk)
                 
         # Update candidate's video_id with the file ID
-        candidate.video_id = filename
+        candidate.videoId = filename
         candidate.save()
         
         return responseWrapper(True, {"video_url": f"/media/profile_videos/{filename}"}, "Video uploaded successfully", 200)
@@ -273,16 +261,16 @@ def get_candidate_image(request, candidateId):
     try:
         candidate = Candidate.objects.get(id=candidateId)
         
-        if not candidate.dp_id:
+        if not candidate.dpId:
             return responseWrapper(False, None, "No image found for this candidate", 404)
             
-        image_path = os.path.join(settings.MEDIA_ROOT, 'user_images', candidate.dp_id)
+        image_path = os.path.join(settings.MEDIA_ROOT, 'user_images', candidate.dpId)
         
         if not os.path.exists(image_path):
             return responseWrapper(False, None, "Image file not found", 404)
             
         # Return the full URL including domain
-        image_url = request.build_absolute_uri(f"/media/user_images/{candidate.dp_id}")
+        image_url = request.build_absolute_uri(f"/media/user_images/{candidate.dpId}")
         return responseWrapper(True, {"image_url": image_url}, "Image retrieved successfully", 200)
         
     except Candidate.DoesNotExist:
@@ -297,15 +285,15 @@ def get_candidate_video(request, candidateId):
     try:
         candidate = Candidate.objects.get(id=candidateId)
         
-        if not candidate.video_id:
+        if not candidate.videoId:
             return responseWrapper(False, None, "No video found for this candidate", 404)
             
-        video_path = os.path.join(settings.MEDIA_ROOT, 'profile_videos', candidate.video_id)
+        video_path = os.path.join(settings.MEDIA_ROOT, 'profile_videos', candidate.videoId)
         
         if not os.path.exists(video_path):
             return responseWrapper(False, None, "Video file not found", 404)
             
-        return responseWrapper(True, {"video_url": f"/media/profile_videos/{candidate.video_id}"}, "Video retrieved successfully", 200)
+        return responseWrapper(True, {"video_url": f"/media/profile_videos/{candidate.videoId}"}, "Video retrieved successfully", 200)
         
     except Candidate.DoesNotExist:
         return responseWrapper(False, None, "Candidate not found", 404)

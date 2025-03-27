@@ -13,11 +13,15 @@ class CandidateHighlightsSerializer(serializers.ModelSerializer):
         model = CandidateHighlights
         fields = '__all__'
         read_only_fields = ('candidate',)
+        extra_kwargs = {
+            'highlightkey': {'help_text': 'Key of the highlight'},
+            'highlightValue': {'help_text': 'Value of the highlight'}
+        }
 
 class CurrentAddressSerializer(serializers.ModelSerializer):
     class Meta:
         model = CurrentAddress
-        fields = ['id', 'streetAddress', 'state', 'city', 'pincode', 'isCurrentAddress']
+        fields = '__all__'
         read_only_fields = ('candidate',)
         extra_kwargs = {
             'streetAddress': {'help_text': 'Street address of the candidate'},
@@ -30,8 +34,7 @@ class CurrentAddressSerializer(serializers.ModelSerializer):
 class EducationalDegreeSerializer(serializers.ModelSerializer):
     class Meta:
         model = EducationalDegree
-        fields = ['id', 'degree', 'university', 'graduationDate', 'graduationMonth', 
-                 'graduationYear', 'location', 'fieldOfStudy', 'notes']
+        fields = '__all__'
         read_only_fields = ('candidate',)
         extra_kwargs = {
             'degree': {'help_text': 'Name of the degree'},
@@ -57,8 +60,7 @@ class SocialMediaLinkSerializer(serializers.ModelSerializer):
 class WorkExperienceSerializer(serializers.ModelSerializer):
     class Meta:
         model = WorkExperience
-        fields = ['id', 'designation', 'companyName', 'currentJob', 'startDate', 
-                 'endDate', 'responsibilities', 'contactNumber', 'location']
+        fields = '__all__'
         read_only_fields = ('candidate',)
         extra_kwargs = {
             'designation': {'help_text': 'Job title or designation'},
@@ -74,7 +76,7 @@ class WorkExperienceSerializer(serializers.ModelSerializer):
 class CandidateSkillSerializer(serializers.ModelSerializer):
     class Meta:
         model = CandidateSkill
-        fields = ['id', 'skillName', 'skillLevel']
+        fields = '__all__'
         read_only_fields = ('candidate',)
         extra_kwargs = {
             'skillName': {'help_text': 'Name of the skill'},
@@ -92,10 +94,7 @@ class CandidateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Candidate
-        fields = ['id', 'user', 'firstName', 'lastName', 'phone', 'mobile', 'dob', 'gender',
-                 'dpId', 'videoId', 'experienceSummary', 'technicalSummary', 'streetAddress',
-                 'currentAddress', 'educationalDegrees', 'socialMediaLinks',
-                 'workExperiences', 'candidateSkills', 'candidateHighlights']
+        fields = '__all__'
         read_only_fields = ('user',)
         extra_kwargs = {
             'firstName': {'help_text': 'First name of the candidate'},
@@ -122,7 +121,7 @@ class CandidateSerializer(serializers.ModelSerializer):
 class CandidateSummarySerializer(serializers.ModelSerializer):
     class Meta:
         model = Candidate
-        fields = ['id', 'experienceSummary', 'technicalSummary']
+        fields = ('id', 'experienceSummary', 'technicalSummary')
         extra_kwargs = {
             'experienceSummary': {'help_text': 'Summary of work experience'},
             'technicalSummary': {'help_text': 'Summary of technical skills'}
