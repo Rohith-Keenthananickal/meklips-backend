@@ -24,6 +24,7 @@ from .serializers import (
 from django.db import transaction
 import os
 from django.conf import settings
+import uuid
 
 def camel_to_snake(name):
     """Convert camelCase to snake_case."""
@@ -177,7 +178,8 @@ def upload_user_image(request, candidateId):
         
         # Generate unique filename
         file_extension = os.path.splitext(image_file.name)[1]
-        filename = f"candidate_{candidateId}_image{file_extension}"
+        unique_id = str(uuid.uuid4())[:8]  # Get first 8 characters of UUID
+        filename = f"candidate_{candidateId}_image_{unique_id}{file_extension}"
         filepath = os.path.join(media_dir, filename)
         
         # Save the file
@@ -206,15 +208,7 @@ def upload_user_image(request, candidateId):
         print(traceback.format_exc())
         return responseWrapper(False, None, f"Error: {str(e)}", 500)
 
-# @swagger_auto_schema(
-#     request_body=openapi.Schema(
-#         type=openapi.TYPE_OBJECT,
-#         properties={
-#             'video': openapi.Schema(type=openapi.TYPE_FILE, description='User profile video file')
-#         }
-#     ),
-#     responses={200: "Video uploaded successfully", 400: "Bad request", 404: "Candidate not found"}
-# )
+
 @api_view(['POST'])
 @parser_classes([MultiPartParser])
 def upload_profile_video(request, candidateId):
@@ -235,7 +229,8 @@ def upload_profile_video(request, candidateId):
         
         # Generate unique filename
         file_extension = os.path.splitext(video_file.name)[1]
-        filename = f"candidate_{candidateId}_video{file_extension}"
+        unique_id = str(uuid.uuid4())[:8]  # Get first 8 characters of UUID
+        filename = f"candidate_{candidateId}_video_{unique_id}{file_extension}"
         filepath = os.path.join(media_dir, filename)
         
         # Save the file
