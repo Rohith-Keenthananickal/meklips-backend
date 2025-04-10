@@ -107,7 +107,13 @@ class CandidateSerializer(serializers.ModelSerializer):
             'videoId': {'help_text': 'Video profile ID'},
             'experienceSummary': {'help_text': 'Summary of work experience'},
             'technicalSummary': {'help_text': 'Summary of technical skills'},
-            'streetAddress': {'help_text': 'Current street address'}
+            'streetAddress': {'help_text': 'Current street address'},
+            'zipCode': {'help_text': 'Zip code of the current address'},
+            'professionInfo': {'help_text': 'Profession information'},
+            'state': {'help_text': 'State of residence'},
+            'city': {'help_text': 'City of residence'},
+            'streetAddress2': {'help_text': 'Secondary street address'},
+            'professionInfo': {'help_text': 'Profession information'},
         }
 
     def to_representation(self, instance):
@@ -142,9 +148,10 @@ class CreateCandidateSerializer(serializers.ModelSerializer):
         model = Candidate
         fields = [
             'userId', 'firstName', 'lastName', 'phone', 'mobile', 'dob', 'gender', 
-            'dpId', 'videoId', 'experienceSummary', 'technicalSummary', 'streetAddress',
+            'dpId', 'videoId', 'experienceSummary', 'technicalSummary',
             'currentAddress', 'educationalDegrees', 'socialMediaLinks', 
-            'workExperiences', 'candidateSkills', 'candidateHighlights'
+            'workExperiences', 'candidateSkills', 'candidateHighlights', 'professionInfo',
+            'state', 'city', 'streetAddress2', 'streetAddress', 'zipCode'
         ]
 
     def validate_userId(self, value):

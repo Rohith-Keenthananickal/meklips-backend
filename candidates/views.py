@@ -26,16 +26,7 @@ import os
 from django.conf import settings
 import uuid
 
-def camel_to_snake(name):
-    """Convert camelCase to snake_case."""
-    pattern = re.compile(r'(?<!^)(?=[A-Z])')
-    return pattern.sub('_', name).lower()
 
-def convert_dict_keys(data):
-    """Convert all dictionary keys from camelCase to snake_case."""
-    if not isinstance(data, dict):
-        return data
-    return {camel_to_snake(k): v for k, v in data.items()}
 
 @swagger_response(request_serializer=CreateCandidateSerializer, response_serializer=CandidateSerializer, method='POST')
 @api_view(['POST'])
@@ -80,10 +71,14 @@ class CandidateDetailView(APIView):
     )
     def put(self, request, userId):
         try:
+            print("Request data:", request.data)  # Debug log
+            print("professionInfo in request:", request.data.get('professionInfo'))  # Debug log
+            
             candidate = Candidate.objects.get(user_id=userId)
             serializer = CandidateSerializer(candidate, data=request.data, partial=True)
 
             if serializer.is_valid():
+                print("Validated data:", serializer.validated_data)  # Debug log
                 with transaction.atomic():  # Ensures all updates succeed or roll back
                     serializer.save()
 
@@ -190,8 +185,6 @@ def upload_user_image(request, candidateId):
         # Update candidate's dp_id with the file ID
         candidate.dpId = filename
         candidate.save()
-        print(candidate)
-        print(candidate.dpId)
         
         # Return the full URL including domain
         image_url = request.build_absolute_uri(f"/media/user_images/{filename}")
