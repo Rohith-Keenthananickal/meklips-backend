@@ -97,7 +97,7 @@ class SendOTPView(APIView):
         existing_otp = PasswordResetOTP.objects.filter(user=user, is_used=False).order_by('-created_at').first()
         if existing_otp and not existing_otp.is_expired():
             return Response({
-                "error": "An OTP has already been sent. Please wait 10 minutes before requesting again."
+                "error": "An OTP has already been sent. Please wait 3 minutes before requesting again."
             }, status=status.HTTP_429_TOO_MANY_REQUESTS)
 
         try:
