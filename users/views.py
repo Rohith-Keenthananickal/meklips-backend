@@ -18,6 +18,7 @@ from .models import PasswordResetOTP
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 from django.utils.html import strip_tags
+from .serializers import OTPValidateSerializer, PasswordResetSerializer
 
 User = get_user_model()
 logger = logging.getLogger(__name__)
@@ -121,3 +122,53 @@ class SendOTPView(APIView):
 
         except Exception as e:
             return Response({"error": f"Failed to send OTP. {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class ValidateOTPView(APIView):
+    permission_classes = (permissions.AllowAny,)
+
+    @swagger_auto_schema(request_body=OTPValidateSerializer)
+    def post(self, request):
+        serializer = OTPValidateSerializer(data=request.data)
+        if serializer.is_valid():
+            otp_obj = serializer.validated_data['otp_obj']
+            otp_obj.is_used = False
+            otp_obj.save()
+            return Response({"error": "OTP is valid."}, status=status.HTTP_200_OK)
+
+        # Extract first error message (can handle non_field_errors or custom keys)
+        error_dict = serializer.errors
+        first_key = next(iter(error_dict))
+        error_message = error_dict[first_key][0] if isinstance(error_dict[first_key], list) else error_dict[first_key]
+        
+        return Response(
+            {"error": error_message},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+class PasswordResetView(APIView):
+    permission_classes = (permissions.AllowAny,)
+    from .serializers import PasswordResetSerializer
+    @swagger_auto_schema(request_body=PasswordResetSerializer)
+    def post(self, request):
+        serializer = PasswordResetSerializer(data=request.data)
+        if serializer.is_valid():
+            user = serializer.validated_data['user']
+            otp_obj = serializer.validated_data['otp_obj']
+            new_password = serializer.validated_data['new_password']
+            user.set_password(new_password)
+            user.save()
+            # Mark OTP as used
+            otp_obj.is_used = True
+            otp_obj.save()
+            return Response({"message": "Password reset successful."}, status=status.HTTP_200_OK)
+        error_dict = serializer.errors
+        first_key = next(iter(error_dict))
+        error_message = error_dict[first_key][0] if isinstance(error_dict[first_key], list) else error_dict[first_key]
+        
+        return Response(
+            {"error": error_message},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+

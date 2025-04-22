@@ -6,6 +6,75 @@ from utils.custom_response import responseWrapper
 
 User = get_user_model()
 
+class OTPValidateSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    otp = serializers.CharField(max_length=6)
+
+    def validate(self, attrs):
+        from .models import PasswordResetOTP
+
+        try:
+            user = User.objects.get(email=attrs['email'])
+        except User.DoesNotExist:
+            raise serializers.ValidationError({"otp_error": "Invalid email or OTP."})
+
+        otp_obj = PasswordResetOTP.objects.filter(
+            user=user, otp=attrs['otp'], is_used=False
+        ).order_by('-created_at').first()
+
+        if not otp_obj:
+            raise serializers.ValidationError({"otp_error": "Invalid email or OTP."})
+
+        if otp_obj.is_expired():
+            raise serializers.ValidationError({"otp_error": "OTP has expired."})
+
+        attrs['user'] = user
+        attrs['otp_obj'] = otp_obj
+        return attrs
+
+
+class PasswordResetSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    otp = serializers.CharField(max_length=6)
+    new_password = serializers.CharField(write_only=True, min_length=8)
+
+    def validate(self, attrs):
+        from .models import PasswordResetOTP
+
+        email = attrs.get('email')
+        otp = attrs.get('otp')
+
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            raise serializers.ValidationError({
+                "email": "No user found with this email address."
+            })
+
+        otp_obj = PasswordResetOTP.objects.filter(
+            user=user, otp=otp, is_used=False
+        ).order_by('-created_at').first()
+
+        if not otp_obj:
+            raise serializers.ValidationError({
+                "otp": "Invalid OTP or it has already been used."
+            })
+
+        if otp_obj.is_expired():
+            raise serializers.ValidationError({
+                "otp": "OTP has expired."
+            })
+
+        attrs['user'] = user
+        attrs['otp_obj'] = otp_obj
+        return attrs
+
+    def validate_new_password(self, value):
+        if len(value) < 8:
+            raise serializers.ValidationError("Password must be at least 8 characters long.")
+        return value
+
+
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
