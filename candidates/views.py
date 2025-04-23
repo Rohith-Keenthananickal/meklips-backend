@@ -235,7 +235,7 @@ def upload_profile_video(request, candidateId):
         candidate.videoId = filename
         candidate.save()
         
-        return responseWrapper(True, {"video_url": f"/media/profile_videos/{filename}"}, "Video uploaded successfully", 200)
+        return responseWrapper(True, {"video_url": f"/media/profile_videos/{filename}","videoId":filename}, "Video uploaded successfully", 200)
         
     except Candidate.DoesNotExist:
         return responseWrapper(False, None, "Candidate not found", 404)
