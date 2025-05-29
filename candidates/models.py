@@ -21,6 +21,7 @@ class Candidate(models.Model):
     state = models.CharField(max_length=100, null=True, blank=True)
     country = models.CharField(max_length=100, null=True, blank=True)
     zipCode = models.CharField(max_length=20, null=True, blank=True)
+    likes = models.IntegerField(default=0, db_column='likes')
     createdAt = models.DateTimeField(auto_now_add=True, db_column='created_at')
     updatedAt = models.DateTimeField(auto_now=True, db_column='updated_at')
 

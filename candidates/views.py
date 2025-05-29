@@ -289,3 +289,22 @@ def get_candidate_video(request, candidateId):
         import traceback
         print(traceback.format_exc())
         return responseWrapper(False, None, f"Error: {str(e)}", 500)
+
+@swagger_auto_schema(
+    method='patch',
+    responses={200: "Likes incremented successfully", 404: "Candidate not found"},
+    operation_description="Increment the likes count for a candidate"
+)
+@api_view(['PATCH'])
+def increment_candidate_likes(request, candidateId):
+    try:
+        candidate = Candidate.objects.get(id=candidateId)
+        candidate.likes += 1
+        candidate.save()
+        return responseWrapper(True, data=candidate, message="Likes incremented successfully", status_code=200)
+    except Candidate.DoesNotExist:
+        return responseWrapper(False, None, "Candidate not found", 404)
+    except Exception as e:
+        import traceback
+        print(traceback.format_exc())
+        return responseWrapper(False, None, f"Error: {str(e)}", 500)

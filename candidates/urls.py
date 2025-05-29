@@ -23,4 +23,5 @@ urlpatterns = [
     path('<int:candidateId>/video', candidate_views.upload_profile_video, name='upload-profile-video'),
     path('image/<int:candidateId>', candidate_views.get_candidate_image, name='get-user-image'),
     path('video/<int:candidateId>', candidate_views.get_candidate_video, name='get-profile-video'),
+    path('<int:candidateId>/like', candidate_views.increment_candidate_likes, name='increment-candidate-likes'),
 ]
