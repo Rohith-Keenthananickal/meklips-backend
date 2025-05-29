@@ -292,7 +292,7 @@ def get_candidate_video(request, candidateId):
 
 @swagger_auto_schema(
     method='patch',
-    responses={200: "Likes incremented successfully", 404: "Candidate not found"},
+    responses={200: CandidateSerializer(), 404: "Candidate not found"},
     operation_description="Increment the likes count for a candidate"
 )
 @api_view(['PATCH'])
@@ -301,7 +301,8 @@ def increment_candidate_likes(request, candidateId):
         candidate = Candidate.objects.get(id=candidateId)
         candidate.likes += 1
         candidate.save()
-        return responseWrapper(True, data=candidate, message="Likes incremented successfully", status_code=200)
+        serializer = CandidateSerializer(candidate)
+        return responseWrapper(True, data=serializer.data, message="Likes incremented successfully", status_code=200)
     except Candidate.DoesNotExist:
         return responseWrapper(False, None, "Candidate not found", 404)
     except Exception as e:
